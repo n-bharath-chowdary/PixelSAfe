@@ -8,6 +8,10 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
+@app.route("/", methods=["GET", "HEAD"])
+def home():
+    return "PixelSafe backend is live."
+
 # ---------- LSB TEXT-IN-IMAGE ----------
 def hide_text_in_image_bytes(img_bytes, text):
     img = Image.open(BytesIO(img_bytes)).convert("RGBA")
