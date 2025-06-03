@@ -185,7 +185,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     try {
       showFullscreenLoader();
-      const response = await fetch("http://127.0.0.1:5000/encode", {
+      const response = await fetch("https://pixelsafe.onrender.com/encode", {
         method: "POST",
         body: formData,
       });
@@ -263,7 +263,7 @@ document.addEventListener("DOMContentLoaded", function () {
       formData.append("file", file);
       formData.append("decode_type", decodeType); // text, image, or video
 
-      const response = await fetch("http://127.0.0.1:5000/decode", {
+      const response = await fetch("https://pixelsafe.onrender.com/decode", {
         method: "POST",
         body: formData,
       });
