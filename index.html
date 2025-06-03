@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PixelSafe</title>
+    <script src="index.js" defer></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="icons/logo.png" type="image/x-icon">
+  </head>
+  <body>
+    <header>PixelSafe AI (Steganography) Encoder & Decoder</header>
+    <div class="tabs" role="tablist" aria-label="Steganography tabs">
+      <button
+        id="encodeTab"
+        role="tab"
+        aria-selected="true"
+        class="tab-button active"
+        aria-controls="encodeSection"
+        tabindex="0"
+      >
+        Encode
+      </button>
+      <button
+        id="decodeTab"
+        role="tab"
+        aria-selected="false"
+        class="tab-button"
+        aria-controls="decodeSection"
+        tabindex="-1"
+      >
+        Decode
+      </button>
+    </div>
+    <main>
+      <section
+        id="encodeSection"
+        class="section active"
+        role="tabpanel"
+        tabindex="0"
+        aria-labelledby="encodeTab"
+      >
+        <form id="encodeForm" onsubmit="return false;">
+          <label for="encodingType">Encoding Type:</label>
+          <select
+            id="encodingType"
+            aria-describedby="encodingTypeDesc"
+            name="encodingType"
+          >
+            <option value="text" selected>Text in Image</option>
+            <option value="image">Image in Image</option>
+            <option value="video">In Video</option>
+          </select>
+          <small id="encodingTypeDesc" style="color: #9e9e9e">
+            Select the type of data you want to encode.
+          </small>
+
+          <label for="coverFileUpload">Cover File (Image or Video):</label>
+          <input
+            type="file"
+            id="coverFileUpload"
+            name="coverFileUpload"
+            accept="image/*,video/*"
+            required
+            aria-required="true"
+          />
+
+          <label
+            id="hiddenFileTypeLabel"
+            for="hiddenFileType"
+            style="margin-top: 1rem; display: none"
+            >Hidden File Type (for Video Encoding):</label
+          >
+          <select
+            id="hiddenFileType"
+            name="hiddenFileType"
+            aria-describedby="hiddenFileTypeDesc"
+            style="display: none"
+          >
+            <option value="text">Text</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+          <small id="hiddenFileTypeDesc" style="color: #9e9e9e; display: none">
+            Choose what type of content to hide inside the video.
+          </small>
+
+          <label id="hiddenDataLabel" for="hiddenData" style="margin-top: 1rem"
+            >Text to Hide:</label
+          >
+          <textarea
+            id="hiddenData"
+            name="hiddenData"
+            placeholder="Enter text to hide here"
+            aria-multiline="true"
+          ></textarea>
+
+          <label
+            id="hiddenFileUploadLabel"
+            for="hiddenFileUpload"
+            style="display: none; margin-top: 1rem"
+            >Hidden Image to Hide:</label
+          >
+          <input
+            type="file"
+            id="hiddenFileUpload"
+            name="hiddenFileUpload"
+            accept="image/*"
+            style="display: none"
+          />
+
+          <label
+            id="hiddenVideoUploadLabel"
+            for="hiddenVideoUpload"
+            style="display: none; margin-top: 1rem"
+            >Hidden Video to Hide:</label
+          >
+          <input
+            type="file"
+            id="hiddenVideoUpload"
+            name="hiddenVideoUpload"
+            accept="video/*"
+            style="display: none"
+          />
+
+          <button
+            id="encodeBtn"
+            type="submit"
+            aria-label="Encode file and data"
+          >
+            Encode
+          </button>
+          <a
+            id="downloadLink"
+            href="#"
+            download
+            style="display: none"
+            class="download-link"
+            aria-hidden="true"
+            >Download Encoded File</a
+          >
+        </form>
+      </section>
+
+      <section
+        id="decodeSection"
+        class="section"
+        role="tabpanel"
+        tabindex="0"
+        aria-labelledby="decodeTab"
+        aria-hidden="true"
+      >
+        <form id="decodeForm" onsubmit="return false;">
+          <label for="decodeType">Select Decoding Type:</label>
+          <select
+            id="decodeType"
+            name="decodeType"
+            aria-describedby="decodeTypeDesc"
+          >
+            <option value="text" selected>Decoded Text</option>
+            <option value="image">Decoded Image</option>
+            <option value="video">Decoded Video</option>
+          </select>
+          <small id="decodeTypeDesc" style="color: #9e9e9e"
+            >Select the type of content you want to decode.</small
+          >
+          <label for="fileUploadDecode" style="margin-top: 1rem"
+            >Encoded File to Decode:</label
+          >
+          <input
+            type="file"
+            id="fileUploadDecode"
+            name="fileUploadDecode"
+            accept="image/*,video/*"
+            required
+            aria-required="true"
+          />
+          <label id="dataTypeDesc" for="dataType" style="margin-top: 1rem"
+            >Data Type to Extract:</label
+          >
+          <select id="dataType">
+            <option value="text">Text</option>
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+          <button id="decodeBtn" type="submit" aria-label="Decode file">
+            Decode
+          </button>
+          <a
+            id="downloadDecodedImage"
+            href="#"
+            download
+            style="display: none"
+            class="download-link"
+            aria-hidden="true"
+            >Download Decoded File</a
+          >
+          <pre
+            id="response"
+            class="response-text"
+            style="display: none"
+            aria-live="polite"
+          ></pre>
+        </form>
+      </section>
+    </main>
+
+    <div
+      id="fullscreenLoader"
+      role="alert"
+      aria-live="assertive"
+      aria-busy="true"
+    >
+      <div class="lds-ring" aria-hidden="true">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+    </div>
+  </body>
+</html>
