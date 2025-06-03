@@ -17,6 +17,7 @@ def hide_text_in_image_bytes(img_bytes, text):
     img = Image.open(BytesIO(img_bytes)).convert("RGBA")
     data = np.array(img)
     flat = data.flatten()
+    flat = flat.astype(np.uint8)
 
     message_bytes = text.encode("utf-8") + b'\xFF\xFE'  # EOF marker (rare UTF-8)
     bit_array = np.unpackbits(np.frombuffer(message_bytes, dtype=np.uint8))
