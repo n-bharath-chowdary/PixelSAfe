@@ -67,10 +67,9 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
 
     payload = np.concatenate((size_header, hidden_flat))
 
-    # Pad payload to multiple of 8 to protect during re-encoding
-    if len(payload) % 8 != 0:
-        pad_len = 8 - (len(payload) % 8)
-        payload = np.pad(payload, (0, pad_len), constant_values=0)
+    # Add padding to avoid browser/host side truncation issues
+    padding = 8 - (len(payload) % 8) if (len(payload) % 8 != 0) else 0
+    payload = np.pad(payload, (0, padding), constant_values=0)
 
     if len(payload) * 2 > len(cover_flat):
         raise ValueError("Cover image too small")
@@ -88,47 +87,44 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
     Image.fromarray(encoded, "RGBA").save(out, format="PNG")
     out.seek(0)
     return out
-
+    
 def extract_image_from_image_bytes(stego_bytes):
-
     stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA").copy())
-
     stego_flat = stego.reshape(-1)
 
-    # Extract size header (4 bytes = 8 cover bytes)
     header_high = stego_flat[:8:2] & 0x0F
     header_low = stego_flat[1:9:2] & 0x0F
     header = (header_high << 4) | header_low
 
     height = (header[0] << 8) + header[1]
     width = (header[2] << 8) + header[3]
-    expected_data_len = height * width * 4
 
+    if height <= 0 or width <= 0 or height > 4000 or width > 4000:
+        raise ValueError(f"Invalid decoded dimensions: {height}x{width}")
+
+    expected_data_len = height * width * 4
     total_payload_bytes = expected_data_len + 4
     total_cover_bytes = total_payload_bytes * 2
 
-    # Sanity check
-    if height <= 0 or width <= 0 or height > 2000 or width > 2000:
-        raise ValueError(f"Invalid decoded dimensions: {height}x{width}")
-
+    # fallback: if truncated, decode what you can
     if total_cover_bytes > len(stego_flat):
-        raise ValueError("Cover image doesn't contain full payload.")
+        total_cover_bytes = len(stego_flat)
+        total_payload_bytes = total_cover_bytes // 2
 
     cover_payload = stego_flat[:total_cover_bytes].reshape(-1, 2)
     highs = cover_payload[:, 0] & 0x0F
     lows = cover_payload[:, 1] & 0x0F
     hidden_bytes = (highs << 4) | lows
+    hidden_data = hidden_bytes[4:]  # skip size header
 
-    hidden_data = hidden_bytes[4:]  # exclude header
     actual_len = len(hidden_data)
     expected_len = expected_data_len
 
     if actual_len < expected_len:
-        raise ValueError(f"Hidden data too small to reconstruct image ({actual_len} < {expected_len})")
+        expected_len = (actual_len // 4) * 4  # fit to 4-channel pixels
 
-    # img_array = hidden_data[:expected_data_len].reshape((height, width, 4)).astype(np.uint8)
-    img_array = hidden_data[:expected_len].reshape((height, width, 4)).astype(np.uint8)
-
+    img_array = hidden_data[:expected_len].reshape(-1, 4).astype(np.uint8)
+    img_array = img_array.reshape((img_array.shape[0] // width, width, 4))
 
     out = BytesIO()
     Image.fromarray(img_array, "RGBA").save(out, format="PNG")
