@@ -110,7 +110,15 @@ def extract_image_from_image_bytes(stego_bytes):
     hidden_bytes = (highs << 4) | lows
 
     hidden_data = hidden_bytes[4:]  # exclude header
-    img_array = hidden_data[:expected_data_len].reshape((height, width, 4)).astype(np.uint8)
+    actual_len = len(hidden_data)
+    expected_len = expected_data_len
+
+    if actual_len < expected_len:
+        raise ValueError(f"Hidden data too small to reconstruct image ({actual_len} < {expected_len})")
+
+    # img_array = hidden_data[:expected_data_len].reshape((height, width, 4)).astype(np.uint8)
+    img_array = hidden_data[:expected_len].reshape((height, width, 4)).astype(np.uint8)
+
 
     out = BytesIO()
     Image.fromarray(img_array, "RGBA").save(out, format="PNG")
