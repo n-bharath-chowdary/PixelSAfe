@@ -84,7 +84,7 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
 
     encoded = cover_encoded.reshape(cover.shape)
     out = BytesIO()
-    Image.fromarray(decoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
+    Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
     return out
     
@@ -130,7 +130,7 @@ def extract_image_from_image_bytes(stego_bytes):
     img_array = img_array.reshape((img_array.shape[0] // width, width, 4))
 
     out = BytesIO()
-    Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
+    Image.fromarray(img_array, "RGBA").save(out, format="PNG", compress_level=0)
     out.seek(0)
     return out
 
