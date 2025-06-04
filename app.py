@@ -53,7 +53,6 @@ def extract_text_from_image_bytes(img_bytes):
 
 # ---------- IMAGE-IN-IMAGE ----------
 def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
-
     cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
     hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
 
@@ -67,6 +66,12 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
     ], dtype=np.uint8)
 
     payload = np.concatenate((size_header, hidden_flat))
+
+    # Pad payload to multiple of 8 to protect during re-encoding
+    if len(payload) % 8 != 0:
+        pad_len = 8 - (len(payload) % 8)
+        payload = np.pad(payload, (0, pad_len), constant_values=0)
+
     if len(payload) * 2 > len(cover_flat):
         raise ValueError("Cover image too small")
 
@@ -101,6 +106,10 @@ def extract_image_from_image_bytes(stego_bytes):
 
     total_payload_bytes = expected_data_len + 4
     total_cover_bytes = total_payload_bytes * 2
+
+    # Sanity check
+    if height <= 0 or width <= 0 or height > 2000 or width > 2000:
+        raise ValueError(f"Invalid decoded dimensions: {height}x{width}")
 
     if total_cover_bytes > len(stego_flat):
         raise ValueError("Cover image doesn't contain full payload.")
