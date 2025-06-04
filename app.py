@@ -96,13 +96,16 @@ def extract_image_from_image_bytes(stego_bytes):
     header_low = stego_flat[1:9:2] & 0x0F
     header = (header_high << 4) | header_low
 
-    height = (header[0] << 8) + header[1]
-    width = (header[2] << 8) + header[3]
+    height = int((header[0] << 8) + header[1])
+    width = int((header[2] << 8) + header[3])
 
     if height <= 0 or width <= 0 or height > 4000 or width > 4000:
         raise ValueError(f"Invalid decoded dimensions: {height}x{width}")
 
-    expected_data_len = height * width * 4
+    if height <= 0 or width <= 0 or height > 4000 or width > 4000:
+        raise ValueError(f"Corrupted header: Decoded image dimensions are invalid ({height}x{width})")
+
+    expected_data_len = int(height * width * 4)
     total_payload_bytes = expected_data_len + 4
     total_cover_bytes = total_payload_bytes * 2
 
