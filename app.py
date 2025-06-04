@@ -130,7 +130,7 @@ def extract_image_from_image_bytes(stego_bytes):
     img_array = img_array.reshape((img_array.shape[0] // width, width, 4))
 
     out = BytesIO()
-    Image.fromarray(img_array, "RGBA").save(out, format="PNG")
+    Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
     return out
 
