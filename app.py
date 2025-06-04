@@ -54,8 +54,9 @@ def extract_text_from_image_bytes(img_bytes):
 # ---------- IMAGE-IN-IMAGE ----------
 def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
 
-    cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA"))
-    hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA"))
+    img = Image.open(BytesIO(img_bytes)).convert("RGBA").copy()
+    cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
+    hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
 
     cover_flat = cover.reshape(-1)
     hidden_flat = hidden.reshape(-1)
@@ -86,7 +87,8 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
 
 def extract_image_from_image_bytes(stego_bytes):
 
-    stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA"))
+    stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA").copy())
+
     stego_flat = stego.reshape(-1)
 
     # Extract size header (4 bytes = 8 cover bytes)
