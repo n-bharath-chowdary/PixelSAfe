@@ -151,45 +151,77 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("Please select a cover file (image or video)");
       return;
     }
-
+  
     const formData = new FormData();
 
-    if (encodingType === "text") {
-      if (!hiddenDataTextarea.value.trim()) {
-        alert("Please enter text to hide");
-        return;
-      }
-      formData.append("image", coverFileInput.files[0]);
-      formData.append("text", hiddenDataTextarea.value.trim());
-    } else if (encodingType === "image") {
-      if (!hiddenFileInput.files.length) {
-        alert("Please select an image file to hide");
-        return;
-      }
-      formData.append("cover_image", coverFileInput.files[0]);
-      formData.append("image", hiddenFileInput.files[0]);
-    } else if (encodingType === "video") {
-      formData.append("video", coverFileInput.files[0]);
-      if (hiddenFileType === "text") {
-        if (!hiddenDataTextarea.value.trim()) {
-          alert("Please enter text to hide in video");
-          return;
-        }
-        formData.append("text", hiddenDataTextarea.value.trim());
-      } else if (hiddenFileType === "image") {
-        formData.append("hidden_image", hiddenFileInput.files[0]);
-      } else if (hiddenFileType === "video") {
-        formData.append("hidden_video", hiddenVideoInput.files[0]);
-      }
+    function convertImageToPNG(file) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+              const pngFile = new File([blob], "converted.png", { type: "image/png" });
+              resolve(pngFile);
+            }, "image/png");
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     try {
       showFullscreenLoader();
+
+      if (encodingType === "text") {
+        if (!hiddenDataTextarea.value.trim()) {
+          alert("Please enter text to hide");
+          return;
+        }
+        const pngCover = await convertImageToPNG(coverFileInput.files[0]);
+        formData.append("image", pngCover);
+        formData.append("text", hiddenDataTextarea.value.trim());
+
+      } else if (encodingType === "image") {
+        if (!hiddenFileInput.files.length) {
+          alert("Please select an image file to hide");
+          return;
+        }
+        const pngCover = await convertImageToPNG(coverFileInput.files[0]);
+        const pngHidden = await convertImageToPNG(hiddenFileInput.files[0]);
+        formData.append("cover_image", pngCover);
+        formData.append("image", pngHidden);
+
+      } else if (encodingType === "video") {
+        formData.append("video", coverFileInput.files[0]);
+
+        if (hiddenFileType === "text") {
+          if (!hiddenDataTextarea.value.trim()) {
+            alert("Please enter text to hide in video");
+            return;
+          }
+          formData.append("text", hiddenDataTextarea.value.trim());
+
+        } else if (hiddenFileType === "image") {
+          const pngHidden = await convertImageToPNG(hiddenFileInput.files[0]);
+          formData.append("hidden_image", pngHidden);
+
+        } else if (hiddenFileType === "video") {
+          formData.append("hidden_video", hiddenVideoInput.files[0]);
+        }
+      }
+
       const response = await fetch("https://pixelsafe.onrender.com/encode", {
         method: "POST",
         body: formData,
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         alert("Error: " + errorData.error);
@@ -197,31 +229,17 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const contentType = response.headers.get("content-type");
-
       if (!contentType.includes("image") && !contentType.includes("video")) {
         alert("Unexpected server response");
-        console.error("Unexpected content-type:", contentType);
         return;
       }
 
       const blob = await response.blob();
-
-      if (blob.size === 0) {
-        alert("Received empty file from server");
-        return;
-      }
-
       const url = URL.createObjectURL(blob);
       downloadLink.href = url;
       downloadLink.style.display = "inline-block";
+      downloadLink.download = contentType.includes("video") ? "encoded_video.mp4" : "encoded_image.png";
 
-      if (encodingType === "video") {
-        downloadLink.download = "encoded_video.mp4";
-      } else if (encodingType === "image") {
-        downloadLink.download = "encoded_image.png";
-      } else {
-        downloadLink.download = "encoded_image.png";
-      }
     } catch (error) {
       alert("An error occurred: " + error.message);
       console.error(error);
