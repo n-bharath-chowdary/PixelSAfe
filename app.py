@@ -54,7 +54,6 @@ def extract_text_from_image_bytes(img_bytes):
 # ---------- IMAGE-IN-IMAGE ----------
 def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
 
-    img = Image.open(BytesIO(img_bytes)).convert("RGBA").copy()
     cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
     hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
 
