@@ -17,16 +17,15 @@ def hide_text_in_image_bytes(img_bytes, text):
     img = Image.open(BytesIO(img_bytes)).convert("RGBA")
     data = np.array(img)
     flat = data.flatten()
-    flat = np.array(img).flatten().astype(np.uint8)  # ✅ this line is critical
-    # flat = flat.astype(np.uint8)
-
-    message_bytes = text.encode("utf-8") + b'\xFF\xFE'  # EOF marker (rare UTF-8)
+    flat = np.array(img).flatten().astype(np.uint8)
+    message_bytes = text.encode("utf-8") + b'\xFF\xFE'  # EOF marker
     bit_array = np.unpackbits(np.frombuffer(message_bytes, dtype=np.uint8))
 
     if len(bit_array) > len(flat):
         raise ValueError("Message too long for image")
 
-    flat[:len(bit_array)] = (flat[:len(bit_array)] & ~1) | bit_array
+    flat[:len(bit_array)] = (flat[:len(bit_array)] & 0xFE) | bit_array  # 💥 FIXED HERE
+
     encoded = flat.reshape(data.shape)
 
     out = BytesIO()
