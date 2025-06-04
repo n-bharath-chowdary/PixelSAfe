@@ -84,7 +84,7 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
 
     encoded = cover_encoded.reshape(cover.shape)
     out = BytesIO()
-    Image.fromarray(encoded, "RGBA").save(out, format="PNG")
+    Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
     return out
     
