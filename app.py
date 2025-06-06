@@ -89,7 +89,7 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
     return out
     
 def extract_image_from_image_bytes(stego_bytes):
-    stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA").copy())
+    stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA"))
     stego_flat = stego.reshape(-1)
 
     header_high = stego_flat[:8:2] & 0x0F
