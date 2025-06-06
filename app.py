@@ -53,36 +53,39 @@ def extract_text_from_image_bytes(img_bytes):
 
 # ---------- IMAGE-IN-IMAGE ----------
 def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
+    # Load cover and hidden images in RGBA format
     cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
     hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
 
     cover_flat = cover.reshape(-1)
     hidden_flat = hidden.reshape(-1)
 
+    # Prepare size header: 2 bytes for height, 2 bytes for width
     height, width = hidden.shape[:2]
     size_header = np.array([
         (height >> 8) & 0xFF, height & 0xFF,
         (width >> 8) & 0xFF, width & 0xFF
     ], dtype=np.uint8)
 
+    # Concatenate header + hidden pixel data (no padding)
     payload = np.concatenate((size_header, hidden_flat))
 
-    # Add padding to avoid browser/host side truncation issues
-    padding = 8 - (len(payload) % 8) if (len(payload) % 8 != 0) else 0
-    payload = np.pad(payload, (0, padding), constant_values=0)
-
+    # Sanity check: cover must be large enough to store 2 bits per byte
     if len(payload) * 2 > len(cover_flat):
-        raise ValueError("Cover image too small")
+        raise ValueError("Cover image is too small to hide the secret image.")
 
+    # Bit-splitting for 2-bit encoding into each byte (hi/lo nibbles)
     payload_high = (payload >> 4) & 0x0F
     payload_low = payload & 0x0F
 
     indices = np.arange(len(payload) * 2)
     cover_encoded = np.copy(cover_flat)
-    cover_encoded[indices[::2]] = (cover_flat[indices[::2]] & 0xF0) | payload_high
-    cover_encoded[indices[1::2]] = (cover_flat[indices[1::2]] & 0xF0) | payload_low
+    cover_encoded[indices[::2]] = (cover_encoded[indices[::2]] & 0xF0) | payload_high
+    cover_encoded[indices[1::2]] = (cover_encoded[indices[1::2]] & 0xF0) | payload_low
 
     encoded = cover_encoded.reshape(cover.shape)
+
+    # Write the encoded image without compression
     out = BytesIO()
     Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
