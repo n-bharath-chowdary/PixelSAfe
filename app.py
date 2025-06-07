@@ -59,37 +59,34 @@ def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
     hidden_img.save(hidden_io, format="PNG", optimize=False, compress_level=0)
     hidden_io.seek(0)
     hidden = np.array(Image.open(hidden_io))  # Reload cleanly after save
-    
-    # Load cover and hidden images in RGBA format (4 channels)
-    cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
-    hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
+
+    # Process cover image as usual
+    cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA"))
+
+    # (Continue your existing logic below...)
     cover_flat = cover.reshape(-1)
     hidden_flat = hidden.reshape(-1)
-    # Prepare size header: 2 bytes for height, 2 bytes for width
+
     height, width = hidden.shape[:2]
     size_header = np.array([
         (height >> 8) & 0xFF, height & 0xFF,
         (width >> 8) & 0xFF, width & 0xFF
     ], dtype=np.uint8)
-    # Concatenate header + hidden pixel data (no padding)
+
     payload = np.concatenate((size_header, hidden_flat))
-    # Sanity check: cover must be large enough to store 4 bits per byte of payload
-    # Each payload byte is split into two 4-bit nibbles, stored in separate cover bytes.
-    # So total cover bytes needed = payload length * 2
+
     if len(payload) * 2 > len(cover_flat):
-        raise ValueError("Cover image is too small to hide the secret image.")
-    # Split each payload byte into high and low nibbles (4 bits each)
+        raise ValueError("Cover image too small")
+
     payload_high = (payload >> 4) & 0x0F
     payload_low = payload & 0x0F
-    # Prepare indices to interleave payload nibbles into cover bytes
+
     indices = np.arange(len(payload) * 2)
     cover_encoded = np.copy(cover_flat)
-    # Encode high nibble in cover bytes at even indices (low nibble replaced)
-    cover_encoded[indices[::2]] = (cover_encoded[indices[::2]] & 0xF0) | payload_high
-    # Encode low nibble in cover bytes at odd indices (low nibble replaced)
-    cover_encoded[indices[1::2]] = (cover_encoded[indices[1::2]] & 0xF0) | payload_low
+    cover_encoded[indices[::2]] = (cover_flat[indices[::2]] & 0xF0) | payload_high
+    cover_encoded[indices[1::2]] = (cover_flat[indices[1::2]] & 0xF0) | payload_low
+
     encoded = cover_encoded.reshape(cover.shape)
-    # Write the encoded image without compression (PNG)
     out = BytesIO()
     Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
