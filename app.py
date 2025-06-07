@@ -175,7 +175,7 @@ def encode():
             out = hide_text_in_image_bytes(image, text)
             return send_file(out, mimetype="image/png", download_name="encoded_image.png", as_attachment=True)
 
-       elif 'cover_image' in request.files and 'image' in request.files:
+        elif 'cover_image' in request.files and 'image' in request.files:
             cover_file = request.files['cover_image']
             secret_file = request.files['image']
 
