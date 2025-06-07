@@ -175,11 +175,19 @@ def encode():
             out = hide_text_in_image_bytes(image, text)
             return send_file(out, mimetype="image/png", download_name="encoded_image.png", as_attachment=True)
 
-        elif 'cover_image' in request.files and 'image' in request.files:
-            cover = request.files['cover_image'].read()
-            secret = request.files['image'].read()
+       elif 'cover_image' in request.files and 'image' in request.files:
+            cover_file = request.files['cover_image']
+            secret_file = request.files['image']
+
+            # Warn or block if hidden image is not PNG
+            if not secret_file.filename.lower().endswith('.png'):
+                return jsonify({"error": "Hidden image must be a PNG file to ensure accurate decoding."}), 400
+
+            cover = cover_file.read()
+            secret = secret_file.read()
             out = hide_image_in_image_bytes(cover, secret)
             return send_file(out, mimetype="image/png", download_name="image_in_image.png", as_attachment=True)
+
 
         elif 'video' in request.files:
             video_bytes = request.files['video'].read()
