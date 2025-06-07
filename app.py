@@ -52,91 +52,169 @@ def extract_text_from_image_bytes(img_bytes):
 
 
 # ---------- IMAGE-IN-IMAGE ----------
+# def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
+#     # Load cover and hidden images in RGBA format
+#     cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
+#     hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
+
+#     cover_flat = cover.reshape(-1)
+#     hidden_flat = hidden.reshape(-1)
+
+#     # Prepare size header: 2 bytes for height, 2 bytes for width
+#     height, width = hidden.shape[:2]
+#     size_header = np.array([
+#         (height >> 8) & 0xFF, height & 0xFF,
+#         (width >> 8) & 0xFF, width & 0xFF
+#     ], dtype=np.uint8)
+
+#     # Concatenate header + hidden pixel data (no padding)
+#     payload = np.concatenate((size_header, hidden_flat))
+
+#     # Sanity check: cover must be large enough to store 2 bits per byte
+#     if len(payload) * 2 > len(cover_flat):
+#         raise ValueError("Cover image is too small to hide the secret image.")
+
+#     # Bit-splitting for 2-bit encoding into each byte (hi/lo nibbles)
+#     payload_high = (payload >> 4) & 0x0F
+#     payload_low = payload & 0x0F
+
+#     indices = np.arange(len(payload) * 2)
+#     cover_encoded = np.copy(cover_flat)
+#     cover_encoded[indices[::2]] = (cover_encoded[indices[::2]] & 0xF0) | payload_high
+#     cover_encoded[indices[1::2]] = (cover_encoded[indices[1::2]] & 0xF0) | payload_low
+
+#     encoded = cover_encoded.reshape(cover.shape)
+
+#     # Write the encoded image without compression
+#     out = BytesIO()
+#     Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
+#     out.seek(0)
+#     return out
 def hide_image_in_image_bytes(cover_bytes, hidden_bytes):
-    # Load cover and hidden images in RGBA format
+    # Load cover and hidden images in RGBA format (4 channels)
     cover = np.array(Image.open(BytesIO(cover_bytes)).convert("RGBA").copy())
     hidden = np.array(Image.open(BytesIO(hidden_bytes)).convert("RGBA").copy())
-
     cover_flat = cover.reshape(-1)
     hidden_flat = hidden.reshape(-1)
-
     # Prepare size header: 2 bytes for height, 2 bytes for width
     height, width = hidden.shape[:2]
     size_header = np.array([
         (height >> 8) & 0xFF, height & 0xFF,
         (width >> 8) & 0xFF, width & 0xFF
     ], dtype=np.uint8)
-
     # Concatenate header + hidden pixel data (no padding)
     payload = np.concatenate((size_header, hidden_flat))
-
-    # Sanity check: cover must be large enough to store 2 bits per byte
+    # Sanity check: cover must be large enough to store 4 bits per byte of payload
+    # Each payload byte is split into two 4-bit nibbles, stored in separate cover bytes.
+    # So total cover bytes needed = payload length * 2
     if len(payload) * 2 > len(cover_flat):
         raise ValueError("Cover image is too small to hide the secret image.")
-
-    # Bit-splitting for 2-bit encoding into each byte (hi/lo nibbles)
+    # Split each payload byte into high and low nibbles (4 bits each)
     payload_high = (payload >> 4) & 0x0F
     payload_low = payload & 0x0F
-
+    # Prepare indices to interleave payload nibbles into cover bytes
     indices = np.arange(len(payload) * 2)
     cover_encoded = np.copy(cover_flat)
+    # Encode high nibble in cover bytes at even indices (low nibble replaced)
     cover_encoded[indices[::2]] = (cover_encoded[indices[::2]] & 0xF0) | payload_high
+    # Encode low nibble in cover bytes at odd indices (low nibble replaced)
     cover_encoded[indices[1::2]] = (cover_encoded[indices[1::2]] & 0xF0) | payload_low
-
     encoded = cover_encoded.reshape(cover.shape)
-
-    # Write the encoded image without compression
+    # Write the encoded image without compression (PNG)
     out = BytesIO()
     Image.fromarray(encoded, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
     return out
     
+# def extract_image_from_image_bytes(stego_bytes):
+#     stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA").copy())
+#     stego_flat = stego.reshape(-1)
+
+#     header_high = stego_flat[:8:2] & 0x0F
+#     header_low = stego_flat[1:9:2] & 0x0F
+#     header = (header_high << 4) | header_low
+
+#     height = int((header[0] << 8) + header[1])
+#     width = int((header[2] << 8) + header[3])
+
+#     if height <= 0 or width <= 0 or height > 4000 or width > 4000:
+#         raise ValueError(f"Invalid decoded dimensions: {height}x{width}")
+
+#     if height <= 0 or width <= 0 or height > 4000 or width > 4000:
+#         raise ValueError(f"Corrupted header: Decoded image dimensions are invalid ({height}x{width})")
+
+#     expected_data_len = int(height * width * 4)
+#     total_payload_bytes = expected_data_len + 4
+#     total_cover_bytes = total_payload_bytes * 2
+
+#     # fallback: if truncated, decode what you can
+#     if total_cover_bytes > len(stego_flat):
+#         total_cover_bytes = len(stego_flat)
+#         total_payload_bytes = total_cover_bytes // 2
+
+#     cover_payload = stego_flat[:total_cover_bytes].reshape(-1, 2)
+#     highs = cover_payload[:, 0] & 0x0F
+#     lows = cover_payload[:, 1] & 0x0F
+#     hidden_bytes = (highs << 4) | lows
+#     hidden_data = hidden_bytes[4:]  # skip size header
+
+#     actual_len = len(hidden_data)
+#     expected_len = expected_data_len
+
+#     if actual_len < expected_len:
+#         expected_len = (actual_len // 4) * 4  # fit to 4-channel pixels
+
+#     img_array = hidden_data[:expected_len].reshape(-1, 4).astype(np.uint8)
+#     img_array = img_array.reshape((img_array.shape[0] // width, width, 4))
+
+#     out = BytesIO()
+#     Image.fromarray(img_array, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
+#     out.seek(0)
+    # return out
 def extract_image_from_image_bytes(stego_bytes):
     stego = np.array(Image.open(BytesIO(stego_bytes)).convert("RGBA").copy())
     stego_flat = stego.reshape(-1)
-
-    header_high = stego_flat[:8:2] & 0x0F
-    header_low = stego_flat[1:9:2] & 0x0F
+    # Extract header bytes from first 8 stego bytes (4 payload bytes)
+    # Recall two cover bytes = one payload byte (high nibble from first byte, low nibble from second byte)
+    header_high = stego_flat[:8:2] & 0x0F  # nibbles from even indices
+    header_low = stego_flat[1:9:2] & 0x0F  # nibbles from odd indices
     header = (header_high << 4) | header_low
-
     height = int((header[0] << 8) + header[1])
     width = int((header[2] << 8) + header[3])
-
     if height <= 0 or width <= 0 or height > 4000 or width > 4000:
         raise ValueError(f"Invalid decoded dimensions: {height}x{width}")
-
-    if height <= 0 or width <= 0 or height > 4000 or width > 4000:
-        raise ValueError(f"Corrupted header: Decoded image dimensions are invalid ({height}x{width})")
-
-    expected_data_len = int(height * width * 4)
-    total_payload_bytes = expected_data_len + 4
-    total_cover_bytes = total_payload_bytes * 2
-
-    # fallback: if truncated, decode what you can
+    expected_data_len = height * width * 4  # 4 bytes per pixel (RGBA)
+    total_payload_bytes = expected_data_len + 4  # header 4 bytes + pixel data
+    total_cover_bytes = total_payload_bytes * 2  # 2 cover bytes per payload byte
+    # If cover image truncated, fallback on available data
     if total_cover_bytes > len(stego_flat):
         total_cover_bytes = len(stego_flat)
         total_payload_bytes = total_cover_bytes // 2
-
     cover_payload = stego_flat[:total_cover_bytes].reshape(-1, 2)
     highs = cover_payload[:, 0] & 0x0F
     lows = cover_payload[:, 1] & 0x0F
     hidden_bytes = (highs << 4) | lows
-    hidden_data = hidden_bytes[4:]  # skip size header
-
+    hidden_data = hidden_bytes[4:]  # skip 4-byte header
+    # If we don't have enough data for expected pixels, reduce to fit multiples of 4 bytes (per pixel)
     actual_len = len(hidden_data)
-    expected_len = expected_data_len
-
-    if actual_len < expected_len:
-        expected_len = (actual_len // 4) * 4  # fit to 4-channel pixels
-
-    img_array = hidden_data[:expected_len].reshape(-1, 4).astype(np.uint8)
-    img_array = img_array.reshape((img_array.shape[0] // width, width, 4))
-
+    if actual_len < expected_data_len:
+        expected_data_len = (actual_len // 4) * 4
+    # Reshape hidden image (height x width x 4)
+    try:
+        img_array = hidden_data[:expected_data_len].reshape((height, width, 4)).astype(np.uint8)
+    except Exception as e:
+        # In case reshape error (e.g. dimensions mismatch), fallback to safe reshape by counting pixels
+        pixel_count = expected_data_len // 4
+        img_array = hidden_data[:pixel_count*4].reshape((pixel_count, 4)).astype(np.uint8)
+        # Further reshape to height and width might fail, so returning whatever possible
+        # Optional: pad or crop accordingly or raise a meaningful error
+        pass
+    # Save extracted image bytes as PNG
     out = BytesIO()
     Image.fromarray(img_array, "RGBA").save(out, format="PNG", optimize=False, compress_level=0)
     out.seek(0)
     return out
-
+    
 # ---------- ZIP-IN-VIDEO ----------
 def hide_text_in_video_bytes(video_bytes, text):
     payload = text.encode('utf-8')
