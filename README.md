@@ -3,6 +3,7 @@
 [![Website](https://img.shields.io/badge/Live%20Demo-Visit-blue?style=for-the-badge)](https://n-bharath-chowdary.github.io/PixelSafe/)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+
 **PixelSafe** is an AI-powered web tool for **steganography**—hiding secret messages or images inside other media files. It's built for privacy enthusiasts, cybersecurity researchers, and curious minds who want to explore the art of digital secrecy.
 
 🚀 [**Live Demo on GitHub Pages** »](https://n-bharath-chowdary.github.io/PixelSafe/)
