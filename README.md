@@ -79,7 +79,7 @@ Access the tool locally at http://localhost:5000
 ---
 
 
-📢 Contribute
+## 📢 Contribute
 
 Got ideas? Found a bug?
 Open an Issue or submit a Pull Request – all contributions are welcome!
@@ -87,14 +87,14 @@ Open an Issue or submit a Pull Request – all contributions are welcome!
 
 ---
 
-📄 License
+## 📄 License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
 
 
 ---
 
-💬 Connect
+## 💬 Connect
 
 ## 🙋‍♂️ Author
 #### Bharath Chowdary
